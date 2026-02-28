@@ -1,0 +1,10 @@
+{
+    "city": "Pune, India",
+    "source_lat": 18.5204,
+    "source_lon": 73.8567,
+    "dest_lat": 18.5018,
+    "dest_lon": 73.8636,
+    "hazard_lat": 18.5170,
+    "hazard_lon": 73.8500,
+    "time_step": 15
+  }
