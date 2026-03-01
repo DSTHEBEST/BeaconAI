@@ -1,5 +1,6 @@
-def compute_edge_cost(travel_time, hazard_risk, w_time=1.0, w_risk=5.0):
+def compute_edge_cost(travel_time, hazard_risk, w_time=1.0, w_risk=500.0):
     """
-    Multi-objective cost function.
+    Multi-objective cost:
+    Minimize distance + λ * hazard exposure
     """
     return (w_time * travel_time) + (w_risk * hazard_risk)

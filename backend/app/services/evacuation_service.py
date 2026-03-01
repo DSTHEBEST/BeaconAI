@@ -15,14 +15,19 @@ def compute_evacuation(payload: dict):
     hazard_lon = payload["hazard_lon"]
     time_step = payload["time_step"]
 
-    # 1️⃣ Load local bounding-box graph
+    # 1️⃣ Load local graph
     G = build_graph(source_lat, source_lon, radius_m=5000)
 
     # 2️⃣ Find nearest nodes
     source_node = ox.distance.nearest_nodes(G, source_lon, source_lat)
     target_node = ox.distance.nearest_nodes(G, dest_lon, dest_lat)
 
-    # 3️⃣ Compute risk-aware weights
+    # 3️⃣ Compute baseline shortest path (distance only)
+    shortest_route = compute_route(
+        G, source_node, target_node, weight_type="length"
+    )
+
+    # 4️⃣ Assign risk-aware weights
     for u, v, k, data in G.edges(keys=True, data=True):
 
         node_lat = G.nodes[u]["y"]
@@ -38,20 +43,50 @@ def compute_evacuation(payload: dict):
 
         travel_distance = data.get("length", 1)
 
-        total_cost = compute_edge_cost(travel_distance, hazard_risk)
+        data["weight"] = compute_edge_cost(travel_distance, hazard_risk)
 
-        data["weight"] = total_cost
+    # 5️⃣ Compute risk-aware route
+    risk_route = compute_route(
+        G, source_node, target_node, weight_type="weight"
+    )
 
-    # 4️⃣ Compute route
-    route = compute_route(G, source_node, target_node, weight_type="weight")
+    # 6️⃣ Metrics computation
+    def compute_metrics(route):
+        total_distance = 0
+        total_risk = 0
 
-    # 5️⃣ Extract coordinates
-    route_coords = [
-        (G.nodes[node]["y"], G.nodes[node]["x"])
-        for node in route
-    ]
+        for i in range(len(route) - 1):
+            u = route[i]
+            v = route[i + 1]
+
+            edge_data = G.get_edge_data(u, v)[0]
+
+            total_distance += edge_data.get("length", 0)
+            total_risk += edge_data.get("weight", 0)
+
+        return total_distance, total_risk
+
+    short_distance, short_risk = compute_metrics(shortest_route)
+    risk_distance, risk_risk = compute_metrics(risk_route)
+
+    exposure_reduction = (
+        (short_risk - risk_risk) / short_risk * 100
+    ) if short_risk != 0 else 0
 
     return {
-        "route": route_coords,
-        "num_nodes": len(route_coords)
+        "risk_aware_route": [
+            (G.nodes[n]["y"], G.nodes[n]["x"]) for n in risk_route
+        ],
+        "shortest_route": [
+            (G.nodes[n]["y"], G.nodes[n]["x"]) for n in shortest_route
+        ],
+        "risk_aware_metrics": {
+            "distance_m": round(risk_distance, 2),
+            "risk_score": round(risk_risk, 2)
+        },
+        "shortest_route_metrics": {
+            "distance_m": round(short_distance, 2),
+            "risk_score": round(short_risk, 2)
+        },
+        "exposure_reduction_percent": round(exposure_reduction, 2)
     }
