@@ -1,8 +1,31 @@
+import math
 import osmnx as ox
 from backend.app.core.graph_builder import build_graph
 from backend.app.core.hazard_model import compute_node_risk
 from backend.app.core.risk_engine import compute_edge_cost
 from backend.app.core.route_optimizer import compute_route
+
+# Hazard spread for zone polygon (degrees approx)
+HAZARD_SPREAD_RATE = 0.001
+
+
+def _route_to_geojson(route, G):
+    """Convert list of node IDs to GeoJSON LineString (lon, lat)."""
+    coords = [(G.nodes[n]["x"], G.nodes[n]["y"]) for n in route]
+    return {"type": "Feature", "geometry": {"type": "LineString", "coordinates": coords}}
+
+
+def _hazard_zone_polygon(lat, lon, time_step, num_points=32):
+    """GeoJSON Polygon: circle around hazard (lon, lat)."""
+    radius_deg = HAZARD_SPREAD_RATE * time_step
+    coords = []
+    for i in range(num_points + 1):
+        angle = 2 * math.pi * i / num_points
+        dx = radius_deg * math.cos(angle)
+        dy = radius_deg * math.sin(angle)
+        coords.append([lon + dx, lat + dy])
+    coords.append(coords[0])
+    return {"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [coords]}}
 
 
 def compute_evacuation(payload: dict):
@@ -73,6 +96,15 @@ def compute_evacuation(payload: dict):
         (short_risk - risk_risk) / short_risk * 100
     ) if short_risk != 0 else 0
 
+    # Hazard intensity per node along risk-aware route (0–1) for frontend visuals
+    hazard_intensity = [
+        round(compute_node_risk(
+            G.nodes[n]["y"], G.nodes[n]["x"],
+            hazard_lat, hazard_lon, time_step
+        ), 4)
+        for n in risk_route
+    ]
+
     return {
         "risk_aware_route": [
             (G.nodes[n]["y"], G.nodes[n]["x"]) for n in risk_route
@@ -80,6 +112,12 @@ def compute_evacuation(payload: dict):
         "shortest_route": [
             (G.nodes[n]["y"], G.nodes[n]["x"]) for n in shortest_route
         ],
+        "risk_aware_route_geojson": _route_to_geojson(risk_route, G),
+        "shortest_route_geojson": _route_to_geojson(shortest_route, G),
+        "hazard_zone_geojson": _hazard_zone_polygon(
+            hazard_lat, hazard_lon, time_step
+        ),
+        "hazard_intensity": hazard_intensity,
         "risk_aware_metrics": {
             "distance_m": round(risk_distance, 2),
             "risk_score": round(risk_risk, 2)
