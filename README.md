@@ -1,55 +1,78 @@
-# Evacuation Route Intelligence System (ERIS)
+# BeaconAI Evacuation Intelligence
 
-A dynamic, risk-aware evacuation optimization system that computes time-sensitive escape routes under evolving hazard conditions and traffic congestion.
+**BeaconAI** is a full‑stack demonstration of a real‑time, risk‑aware evacuation planner. Using a clean, dark‑mode map interface, users can enter source, destination and hazard coordinates then compute two routes:
 
-## 🚀 Overview
+1. a **risk‑aware** path that avoids danger zones, and
+2. the **shortest** path for comparison.
 
-This project simulates:
+Both routes are rendered on a stylized MapLibre map, with a hazard polygon overlay and live metrics showing distance, risk score and exposure reduction.
 
-- Hazard spread modeling (fire/flood)
-- Traffic congestion dynamics
-- Risk-weighted graph optimization
-- Time-aware evacuation routing
+## Features
 
-Unlike traditional navigation systems, ERIS optimizes for **minimum risk exposure**, not just shortest distance.
+- Dual‑route visualization (safe vs. shortest)
+- Animated map that orbits on startup and locks on compute
+- Hazard zone with noise pattern overlay
+- Responsive input panel with live debug information
+- FastAPI backend computing routes via osmnx/NetworkX
+- Metrics display showing risk comparison
 
----
+## Getting Started
 
-## 🧠 Core Concepts
+### Prerequisites
 
-- Graph Theory (NetworkX)
-- Risk-weighted shortest path
-- Dynamic hazard modeling
-- Traffic congestion simulation
-- Monte Carlo route reliability (planned)
+- Python 3.10+ (venv recommended)
+- Node.js 18+
 
----
+### Backend
 
-## 🏗 Tech Stack
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate  # Windows
+pip install -r ../requirements.txt
 
-**Backend**
-- FastAPI
-- NetworkX
-- OSMnx
-- NumPy / Pandas
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+```
 
-**Frontend**
-- React (planned)
+The server exposes a single POST endpoint `/evacuate` accepting a JSON payload:
 
----
+```json
+{
+  "source_lat": ..., "source_lon": ..., 
+  "dest_lat": ..., "dest_lon": ..., 
+  "hazard_lat": ..., "hazard_lon": ..., 
+  "time_step": 1
+}
+```
 
-## 📊 Roadmap
+It returns both route geometries, metrics, and hazard data.
 
-- [ ] Road graph integration
-- [ ] Hazard spread simulation
-- [ ] Risk-aware routing
-- [ ] Traffic modeling
-- [ ] Dynamic time simulation
-- [ ] Monte Carlo reliability modeling
-- [ ] Deployment
+### Frontend
 
----
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-## ⚠️ Status
+Open [http://localhost:5173](http://localhost:5173) and interact with the map.
 
-Project initialization phase.
+## Project Structure
+
+```
+backend/            # FastAPI application and evacuation logic
+frontend/           # Vite + React + MapLibre UI
+  src/              # components, API wrapper, styles
+  public/           # static assets
+tests/              # (optional) unit tests
+```
+
+## Customization
+
+- Swap map style in `BeaconMap.tsx`
+- Replace hazard model with real data
+- Add user authentication or persistent storage
+
+## License
+
+MIT © dev
