@@ -7,6 +7,8 @@
 
 Both routes are rendered on a stylized MapLibre map, with a hazard polygon overlay and live metrics showing distance, risk score and exposure reduction.
 
+![App screenshot](Screenshot 2026-03-04 020638.png)
+
 ## Features
 
 - Dual‑route visualization (safe vs. shortest)
